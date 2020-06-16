@@ -1,6 +1,9 @@
 """CPU functionality."""
 
 import sys
+LDI = 0b10000010  # LDI R0,8
+PRN = 0b01000111  # PRN R0
+HLT = 0b00000001  # HLT
 
 
 class CPU:
@@ -8,9 +11,9 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        self.ram = [0] * 256  # 256 pieces of memory
-        self.pc = 0  # index of current instruction - POINTER to an address in memory
-        self.running = True  # running flag if necessary
+        self.ram = [0] * 256  # this is our memory
+        self.pc = 0  # the Program Counter ~~> aka indexof the current instruction
+        self.running = True  # a variable used to run our RUN repl
 
     def load(self):
         """Load a program into memory."""
@@ -21,7 +24,7 @@ class CPU:
 
         program = [
             # From print8.ls8
-            0b10000010,  # LDI R0,8 == 130
+            0b10000010,  # LDI R0,8
             0b00000000,
             0b00001000,
             0b01000111,  # PRN R0
@@ -32,42 +35,6 @@ class CPU:
         for instruction in program:
             self.ram[address] = instruction
             address += 1
-
-    def ram_read(self, mem_address_reg=None, mem_data_reg=None):
-        """ accept the address to read and return the value stored there. """
-
-        # loop thru ram in order to access MAR
-        for i in range(0, len(self.ram)):
-            # print(self.ram[i])
-            if self.ram[i] == 130:  # that is the code for LDI R0,8
-                # print(self.ram[i])
-                # save our Memory Registration Address in a variable
-                mem_address_reg = self.ram[i + 1]
-                print('mem_address_reg', mem_address_reg)
-                # print('mem_address_reg', mem_address_reg)
-                # we know our Memory Data Register is right after our MAR
-                mem_data_reg = self.ram[i + 2]
-                print('mem_data_reg', mem_data_reg)
-                # move the pointer up 3 posiitons so we do not count the MAR or MDR
-                self.pc += 3
-            elif self.ram[i] == 71:
-                print("ELIF", mem_data_reg)
-            elif self.ram[i] == 0:
-                continue
-            elif self.ram[i] == 1:
-                break
-        return mem_data_reg
-
-    def ram_write(self, value=None, mem_address_reg=None):
-        """ should accept a value to write, and the address to write it to. """
-        # similar to ram_read() we need to loop through our ram and find the first
-        for i in range(0, len(self.ram)):
-            if self.ram[i] == 0 and self.ram[i + 1] == 0 and self.ram[i + 2] == 0:
-                mem_address_reg = self.ram[i]
-                self.ram[i + 1] = value
-                print('MEM ADDRESS', mem_address_reg)
-                print('VAL', self.ram[i + 1])
-                break
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -98,14 +65,49 @@ class CPU:
 
         print()
 
+    def ram_read(self, mar):
+        """ Memory Address Register: holds our address in memory which we read or write to """
+        mar_reg = self.ram[mar]  # this varible holds the current index of our Memory Address Register
+        return mar_reg
+
+    def ram_write(self, mar, mdr):
+        """ Memory Data Register: assigns data to a piece of memory at a specific address """
+        self.ram[mar] = mdr  # this simply gives us our value at the MAR given
+
     def run(self):
         """Run the CPU."""
-        pass
+        # while the CPU is running do some cool stuff
+        while self.running:
+            # store our Instruction Register at the place in memory at the index of our current PC
+            ir = self.ram[self.pc]
 
+            # if our pc is on a LoaD Imediatley index then we need to...
+            if ir == LDI:
+                # get the LDI's MAR, which we designed to be the very next index of LDI
+                reg_num = self.ram_read(self.pc + 1)
+                # get the LDI's MDR which we designed to be 2 away from our LDI index
+                reg_val = self.ram_read(self.pc + 2)
+                # we then need to run our write function in order to access the MAR + MDR
+                self.ram_write(reg_num, reg_val)
+                # we know that an LDI has an MAR & MDR to follow so we need to skip those two indecies in order to move through the stack cleanly
+                self.pc += 3
 
-# TESTS
-cpu_new = CPU()
-cpu_new.load()
-# print(cpu_new.ram_read())
-print(cpu_new.ram_write("hello", 1))
-# print(cpu_new.ram)
+            # if our current index register finds a PRN statement we need to ...
+            elif ir == PRN:
+                # sasve our MAR to a variable
+                reg_num = self.ram_read(self.pc + 1)
+                # print out our variable above in order to PRN properly
+                print(self.ram_read(reg_num))
+                # increment to the next command in the stack past our MAR & MDR
+                self.pc += 2
+
+            # if we find a HLT command...
+            elif ir == HLT:
+                # stop the CPU from running...
+                self.running = False
+                # and move on in the stack.
+                self.pc += 1
+
+            # otherwise we want to tell our user what the issue is with the cpu run method
+            else:
+                print(f"Unknown expression {ir} at address {pc}")
