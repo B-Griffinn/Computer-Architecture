@@ -14,6 +14,7 @@ class CPU:
         self.ram = [0] * 256  # this is our memory
         self.pc = 0  # the Program Counter ~~> aka indexof the current instruction
         self.running = True  # a variable used to run our RUN repl
+        self.reg = [0] * 8
 
     def load(self):
         """Load a program into memory."""
@@ -74,6 +75,15 @@ class CPU:
         """ Memory Data Register: assigns data to a piece of memory at a specific address """
         self.ram[mar] = mdr  # this simply gives us our value at the MAR given
 
+    def reg_read(self, mar):
+        """ Memory Address Register: holds our address in memory which we read or write to """
+        mar_reg = self.reg[mar]  # this varible holds the current index of our Memory Address Register
+        return mar_reg
+
+    def reg_write(self, mar, mdr):
+        """ Memory Data Register: assigns data to a piece of memory at a specific address """
+        self.reg[mar] = mdr  # this simply gives us our value at the MAR given
+
     def run(self):
         """Run the CPU."""
         # while the CPU is running do some cool stuff
@@ -88,7 +98,9 @@ class CPU:
                 # get the LDI's MDR which we designed to be 2 away from our LDI index
                 reg_val = self.ram_read(self.pc + 2)
                 # we then need to run our write function in order to access the MAR + MDR
-                self.ram_write(reg_num, reg_val)
+
+                # TODO
+                self.reg_write(reg_num, reg_val)
                 # we know that an LDI has an MAR & MDR to follow so we need to skip those two indecies in order to move through the stack cleanly
                 self.pc += 3
 
@@ -97,7 +109,8 @@ class CPU:
                 # sasve our MAR to a variable
                 reg_num = self.ram_read(self.pc + 1)
                 # print out our variable above in order to PRN properly
-                print(self.ram_read(reg_num))
+                # TODO read from register NOT ram
+                print(self.reg_read(reg_num))
                 # increment to the next command in the stack past our MAR & MDR
                 self.pc += 2
 
