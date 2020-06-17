@@ -15,7 +15,39 @@ class CPU:
         self.ram = [0] * 256  # this is our memory
         self.pc = 0  # the Program Counter ~~> aka indexof the current instruction
         self.running = True  # a variable used to run our RUN repl
+        # this is our registry as we do not want to write everythin to our RAM. Just what we are using
         self.reg = [0] * 8
+
+    def mul(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("MUL", reg_a, reg_b)
+        self.pc += 3
+
+    def hlt(self):
+        self.pc += 1
+        self.running = False
+
+    def prn(self):
+        # sasve our MAR to a variable
+        reg_num = self.ram_read(self.pc + 1)
+        # print out our variable above in order to PRN properly
+        # TODO read from register NOT ram
+        print("PRN:", self.reg_read(reg_num))
+        # increment to the next command in the stack past our MAR & MDR
+        self.pc += 2
+
+    def ldi(self):
+        # get the LDI's MAR, which we designed to be the very next index of LDI
+        reg_num = self.ram_read(self.pc + 1)
+        # get the LDI's MDR which we designed to be 2 away from our LDI index
+        reg_val = self.ram_read(self.pc + 2)
+        # we then need to run our write function in order to access the MAR + MDR
+
+        # TODO
+        self.reg_write(reg_num, reg_val)
+        # we know that an LDI has an MAR & MDR to follow so we need to skip those two indecies in order to move through the stack cleanly
+        self.pc += 3
 
     def load(self, filename):
         """Load a program into memory."""
@@ -39,8 +71,7 @@ class CPU:
 
                 address += 1
 
-        # # For now, we've just hardcoded a program:
-
+        # hardcoded program:
         # program = [
         #     # From print8.ls8
         #     0b10000010,  # LDI R0,8
@@ -50,7 +81,6 @@ class CPU:
         #     0b00000000,
         #     0b00000001,  # HLT
         # ]
-
         # for instruction in program:
         #     self.ram[address] = instruction
         #     address += 1
@@ -108,44 +138,19 @@ class CPU:
         # while the CPU is running do some cool stuff
         while self.running:
             # store our Instruction Register at the place in memory at the index of our current PC
+            # ir = self.ram[self.pc]
             ir = self.ram[self.pc]
             # print("IR", ir)
 
-            # if our pc is on a LoaD Imediatley index then we need to...
-            if ir == LDI:
-                # get the LDI's MAR, which we designed to be the very next index of LDI
-                reg_num = self.ram_read(self.pc + 1)
-                # get the LDI's MDR which we designed to be 2 away from our LDI index
-                reg_val = self.ram_read(self.pc + 2)
-                # we then need to run our write function in order to access the MAR + MDR
+            branch_table = {
+                LDI: self.ldi,
+                PRN: self.prn,
+                HLT: self.hlt,
+                MUL: self.mul
+            }
 
-                # TODO
-                self.reg_write(reg_num, reg_val)
-                # we know that an LDI has an MAR & MDR to follow so we need to skip those two indecies in order to move through the stack cleanly
-                self.pc += 3
-
-            # if our current index register finds a PRN statement we need to ...
-            elif ir == PRN:
-                # sasve our MAR to a variable
-                reg_num = self.ram_read(self.pc + 1)
-                # print out our variable above in order to PRN properly
-                # TODO read from register NOT ram
-                print("PRN:", self.reg_read(reg_num))
-                # increment to the next command in the stack past our MAR & MDR
-                self.pc += 2
-
-            elif ir == MUL:
-                reg_a = self.ram_read(self.pc + 1)
-                reg_b = self.ram_read(self.pc + 2)
-                self.alu("MUL", reg_a, reg_b)
-                self.pc += 3
-
-            # if we find a HLT command...
-            elif ir == HLT:
-                # stop the CPU from running...
-                self.running = False
-                # and move on in the stack.
-                self.pc += 1
+            if ir in branch_table:
+                branch_table[ir]()
 
             # otherwise we want to tell our user what the issue is with the cpu run method
             else:
