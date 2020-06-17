@@ -28,7 +28,7 @@ class CPU:
             HLT: self.hlt,
             MUL: self.mul,
             PUSH: self.push,
-            POP: self.pop
+            POP: self.pop,
         }
 
     def mul(self):
@@ -43,7 +43,7 @@ class CPU:
 
     def prn(self):
         # sasve our MAR to a variable
-        reg_num = self.reg_read(self.pc + 1)
+        reg_num = self.ram_read(self.pc + 1)
         # print out our variable above in order to PRN properly
         # TODO read from register NOT ram
         print("PRN:", self.reg_read(reg_num))
@@ -76,12 +76,12 @@ class CPU:
         top_stack_val = self.reg[SP]
         # lets get the register address
         reg_addr = self.ram[self.pc + 1]
-        print('reg_addr', self.reg[reg_addr])
+        # print('reg_addr', self.reg[reg_addr])
         # overwrite our reg address with the value of our memory address we are looking at
         self.reg[reg_addr] = self.ram[self.reg[SP]]
 
         self.reg[SP] += 1
-        self.pc += 1
+        self.pc += 2
 
         """
         OVERVIEW
