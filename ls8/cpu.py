@@ -73,14 +73,15 @@ class CPU:
         self.pc += 2
 
     def pop(self):
-        top_st_val = self.reg[SP]
-        print('top_st_val', top_st_val)
-        # lets get the register
+        top_stack_val = self.reg[SP]
+        # lets get the register address
         reg_addr = self.ram[self.pc + 1]
-        # print('reg_addr', reg_addr)
+        print('reg_addr', self.reg[reg_addr])
+        # overwrite our reg address with the value of our memory address we are looking at
         self.reg[reg_addr] = self.ram[self.reg[SP]]
 
         self.reg[SP] += 1
+        self.pc += 1
 
         """
         OVERVIEW
