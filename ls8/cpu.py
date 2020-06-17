@@ -5,6 +5,10 @@ LDI = 0b10000010  # LDI R0,8
 PRN = 0b01000111  # PRN R0
 HLT = 0b00000001  # HLT
 MUL = 0b10100010  # MUL R0,R1
+PUSH = 0b01000101  # PUSH R0
+POP = 0b01000110  # POP R0
+# Initialize and set default for our StackPointer
+SP = 7
 
 
 class CPU:
@@ -17,6 +21,15 @@ class CPU:
         self.running = True  # a variable used to run our RUN repl
         # this is our registry as we do not want to write everythin to our RAM. Just what we are using
         self.reg = [0] * 8
+        self.reg[SP] = 0xf4
+        self.branch_table = {
+            LDI: self.ldi,
+            PRN: self.prn,
+            HLT: self.hlt,
+            MUL: self.mul,
+            PUSH: self.push,
+            POP: self.pop
+        }
 
     def mul(self):
         reg_a = self.ram_read(self.pc + 1)
@@ -30,7 +43,7 @@ class CPU:
 
     def prn(self):
         # sasve our MAR to a variable
-        reg_num = self.ram_read(self.pc + 1)
+        reg_num = self.reg_read(self.pc + 1)
         # print out our variable above in order to PRN properly
         # TODO read from register NOT ram
         print("PRN:", self.reg_read(reg_num))
@@ -44,10 +57,40 @@ class CPU:
         reg_val = self.ram_read(self.pc + 2)
         # we then need to run our write function in order to access the MAR + MDR
 
-        # TODO
         self.reg_write(reg_num, reg_val)
         # we know that an LDI has an MAR & MDR to follow so we need to skip those two indecies in order to move through the stack cleanly
         self.pc += 3
+
+    def push(self):
+        self.reg[SP] -= 1
+        # Get the value we want to store from the register
+        reg_num = self.ram[self.pc + 1]
+        value = self.reg[reg_num]  # <-- this is the value that we want to push
+        # Figure out where to store it
+        top_of_stack_addr = self.reg[SP]
+        # Store it
+        self.ram[top_of_stack_addr] = value
+        self.pc += 2
+
+    def pop(self):
+        top_st_val = self.reg[SP]
+        print('top_st_val', top_st_val)
+        # lets get the register
+        reg_addr = self.ram[self.pc + 1]
+        # print('reg_addr', reg_addr)
+        self.reg[reg_addr] = self.ram[self.reg[SP]]
+
+        self.reg[SP] += 1
+
+        """
+        OVERVIEW
+        - take the value out of ram and copy that to the register
+        - then increment the stack pointer
+        PLAN:
+        - find the stack pointer in memory and extract its value
+        - we then copy that SP memory value to the register at the position provided with the POP function
+        - incrment the stack pointer
+        """
 
     def load(self, filename):
         """Load a program into memory."""
@@ -142,15 +185,17 @@ class CPU:
             ir = self.ram[self.pc]
             # print("IR", ir)
 
-            branch_table = {
-                LDI: self.ldi,
-                PRN: self.prn,
-                HLT: self.hlt,
-                MUL: self.mul
-            }
+            # branch_table = {
+            #     LDI: self.ldi,
+            #     PRN: self.prn,
+            #     HLT: self.hlt,
+            #     MUL: self.mul,
+            #     PUSH: self.push,
+            #     POP: self.pop
+            # }
 
-            if ir in branch_table:
-                branch_table[ir]()
+            if ir in self.branch_table:
+                self.branch_table[ir]()
 
             # otherwise we want to tell our user what the issue is with the cpu run method
             else:
