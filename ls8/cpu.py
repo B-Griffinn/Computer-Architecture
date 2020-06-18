@@ -5,8 +5,11 @@ LDI = 0b10000010  # LDI R0,8
 PRN = 0b01000111  # PRN R0
 HLT = 0b00000001  # HLT
 MUL = 0b10100010  # MUL R0,R1
+ADD = 0b10100000  # ADD R0, R1
 PUSH = 0b01000101  # PUSH R0
 POP = 0b01000110  # POP R0
+CALL = 0b01010000  # CALL R1
+RET = 0b00010001  # RET
 # Initialize and set default for our StackPointer
 SP = 7
 
@@ -27,8 +30,11 @@ class CPU:
             PRN: self.prn,
             HLT: self.hlt,
             MUL: self.mul,
+            ADD: self.add,
             PUSH: self.push,
             POP: self.pop,
+            CALL: self.call,
+            RET: self.ret
         }
 
     def mul(self):
@@ -37,12 +43,20 @@ class CPU:
         self.alu("MUL", reg_a, reg_b)
         self.pc += 3
 
+    def add(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("ADD", reg_a, reg_b)
+        self.pc += 3
+
     def hlt(self):
+        # print('self.running before tiggle', self.running)
         self.pc += 1
         self.running = False
+        # print('self.running after tiggle', self.running)
 
     def prn(self):
-        # sasve our MAR to a variable
+        # save our MAR to a variable using ram_read()
         reg_num = self.ram_read(self.pc + 1)
         # print out our variable above in order to PRN properly
         # TODO read from register NOT ram
@@ -92,6 +106,31 @@ class CPU:
         - incrment the stack pointer
         """
 
+    def call(self):
+        return_addr = self.pc + 2  # Where we're going to RET to
+        # Push on the stack
+        self.reg[SP] -= 1
+        self.ram[self.reg[SP]] = return_addr
+        # Get the address to call
+        reg_num = self.ram[self.pc + 1]
+        subroutine_addr = self.reg[reg_num]
+
+        # Call it
+        self.pc = subroutine_addr
+
+    def ret(self):
+        """ Return from subroutine.
+            Pop the value from the top of the stack and store it in the `PC`.
+        """
+        top_stack_val = self.reg[SP]
+        # lets get the register address
+        reg_addr = self.ram[self.pc + 1]
+        # overwrite our reg address with the value of our memory address we are looking at
+        self.reg[reg_addr] = self.ram[self.reg[SP]]
+        # print('asdfasdfsdaf', self.ram[self.reg[SP]])
+        self.reg[SP] += 1
+        self.pc = self.reg[reg_addr]
+
     def load(self, filename):
         """Load a program into memory."""
 
@@ -113,20 +152,6 @@ class CPU:
                 self.ram[address] = v
 
                 address += 1
-
-        # hardcoded program:
-        # program = [
-        #     # From print8.ls8
-        #     0b10000010,  # LDI R0,8
-        #     0b00000000,
-        #     0b00001000,
-        #     0b01000111,  # PRN R0
-        #     0b00000000,
-        #     0b00000001,  # HLT
-        # ]
-        # for instruction in program:
-        #     self.ram[address] = instruction
-        #     address += 1
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
