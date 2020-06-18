@@ -76,7 +76,6 @@ class CPU:
         top_stack_val = self.reg[SP]
         # lets get the register address
         reg_addr = self.ram[self.pc + 1]
-        # print('reg_addr', self.reg[reg_addr])
         # overwrite our reg address with the value of our memory address we are looking at
         self.reg[reg_addr] = self.ram[self.reg[SP]]
 
