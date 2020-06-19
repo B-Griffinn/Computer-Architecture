@@ -10,6 +10,10 @@ PUSH = 0b01000101  # PUSH R0
 POP = 0b01000110  # POP R0
 CALL = 0b01010000  # CALL R1
 RET = 0b00010001  # RET
+CMP = 0b10100111  # CMP
+JEQ = 0b01010101  # JEQ
+JMP = 0b01010100  # JMP
+JNE = 0b01010110  # JNE
 # Initialize and set default for our StackPointer
 SP = 7
 
@@ -25,6 +29,7 @@ class CPU:
         # this is our registry as we do not want to write everythin to our RAM. Just what we are using
         self.reg = [0] * 8
         self.reg[SP] = 0xf4
+        self.flag = 0b00000000
         self.branch_table = {
             LDI: self.ldi,
             PRN: self.prn,
@@ -34,7 +39,11 @@ class CPU:
             PUSH: self.push,
             POP: self.pop,
             CALL: self.call,
-            RET: self.ret
+            RET: self.ret,
+            CMP: self.comp,
+            JEQ: self.jeq,
+            JMP: self.jmp,
+            JNE: self.jne
         }
 
     def mul(self):
@@ -48,6 +57,37 @@ class CPU:
         reg_b = self.ram_read(self.pc + 2)
         self.alu("ADD", reg_a, reg_b)
         self.pc += 3
+
+    def comp(self):
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        # print(reg_a)
+        # print(reg_b)
+        self.alu("CMP", reg_a, reg_b)
+        self.pc += 3
+
+    def jmp(self):
+        reg_num = self.ram_read(self.pc + 1)
+
+        self.pc = self.reg[reg_num]
+
+        # self.pc += 2
+
+    def jeq(self):
+        reg_num = self.ram_read(self.pc + 1)
+
+        if self.flag & 0b00000001 == 1:
+            self.pc = self.reg[reg_num]
+        else:
+            self.pc += 2
+
+    def jne(self):
+        reg_num = self.ram_read(self.pc + 1)
+
+        if self.flag & 0b00000001 == 0:
+            self.pc = self.reg[reg_num]
+        else:
+            self.pc += 2
 
     def hlt(self):
         # print('self.running before tiggle', self.running)
@@ -160,6 +200,15 @@ class CPU:
             self.reg[reg_a] += self.reg[reg_b]
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op == "CMP":
+            #  `FL` bits: `00000LGE`
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.flag = 0b00000001
+                # TODO self.pc + 1?
+            elif self.reg[reg_a] < self.reg[reg_b]:
+                self.flag = 0b00000100
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                self.flag = 0b00000010
         else:
             raise Exception("Unsupported ALU operation")
 
