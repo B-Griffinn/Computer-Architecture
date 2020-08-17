@@ -14,6 +14,7 @@ CMP = 0b10100111  # CMP
 JEQ = 0b01010101  # JEQ
 JMP = 0b01010100  # JMP
 JNE = 0b01010110  # JNE
+ST = 0b10000100
 # Initialize and set default for our StackPointer
 SP = 7
 
@@ -43,8 +44,17 @@ class CPU:
             CMP: self.comp,
             JEQ: self.jeq,
             JMP: self.jmp,
-            JNE: self.jne
+            JNE: self.jne,
+            ST: self.st
         }
+
+    def st(self):
+        # Store value in registerB in the address stored in registerA.
+        # This opcode writes to memory.
+        reg_a = self.ram_read(self.pc + 1)
+        reg_b = self.ram_read(self.pc + 2)
+        self.alu("ST", reg_a, reg_b)
+        self.pc += 3
 
     def mul(self):
         reg_a = self.ram_read(self.pc + 1)
@@ -70,8 +80,6 @@ class CPU:
         reg_num = self.ram_read(self.pc + 1)
 
         self.pc = self.reg[reg_num]
-
-        # self.pc += 2
 
     def jeq(self):
         reg_num = self.ram_read(self.pc + 1)
@@ -209,6 +217,8 @@ class CPU:
                 self.flag = 0b00000100
             elif self.reg[reg_a] > self.reg[reg_b]:
                 self.flag = 0b00000010
+        elif op == "ST":
+            self.reg[reg_b] = self.reg[reg_a]
         else:
             raise Exception("Unsupported ALU operation")
 
